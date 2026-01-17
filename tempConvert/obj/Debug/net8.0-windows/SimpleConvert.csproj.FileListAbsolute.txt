@@ -1,0 +1,15 @@
+E:\LightPic-Source\tempConvert\bin\Debug\net8.0-windows\SimpleConvert.exe
+E:\LightPic-Source\tempConvert\bin\Debug\net8.0-windows\SimpleConvert.deps.json
+E:\LightPic-Source\tempConvert\bin\Debug\net8.0-windows\SimpleConvert.runtimeconfig.json
+E:\LightPic-Source\tempConvert\bin\Debug\net8.0-windows\SimpleConvert.dll
+E:\LightPic-Source\tempConvert\bin\Debug\net8.0-windows\SimpleConvert.pdb
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.GeneratedMSBuildEditorConfig.editorconfig
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.AssemblyInfoInputs.cache
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.AssemblyInfo.cs
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.csproj.CoreCompileInputs.cache
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.sourcelink.json
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.dll
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\refint\SimpleConvert.dll
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.pdb
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\SimpleConvert.genruntimeconfig.cache
+E:\LightPic-Source\tempConvert\obj\Debug\net8.0-windows\ref\SimpleConvert.dll

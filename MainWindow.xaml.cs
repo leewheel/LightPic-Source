@@ -209,7 +209,7 @@ if __name__ == '__main__':
         private const string ResourceFileName = "LightPic-App.py";
 
         // 类级别的路径变量
-        private readonly string _physicalRoot;     // APP ROOT (即 Z-Image 目录)
+        private readonly string _physicalRoot;     // APP ROOT (即 LightPic-Source 目录)
         private readonly string _pythonEnvDir;    // python_env 目录
         private readonly string _pythonExePath;    // python.exe 路径
 
@@ -225,7 +225,7 @@ if __name__ == '__main__':
             this.Closing += MainWindow_Closing;
             this.SizeChanged += MainWindow_SizeChanged;
 
-            // 获取 EXE 所在目录 (即 Z-Image 根目录)
+            // 获取 EXE 所在目录 (即 LightPic-Source 根目录)
             _physicalRoot = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             this.ModelBaseDir = _physicalRoot;
             this.SharedPythonDir = System.IO.Path.Combine(_physicalRoot, "python_env");

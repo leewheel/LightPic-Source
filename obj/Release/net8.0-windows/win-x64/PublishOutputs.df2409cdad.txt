@@ -1,7 +1,0 @@
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Z-Image-Launcher.pdb
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\runtimes\win-x64\native\WebView2Loader.dll
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\WebView2Loader.dll
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.Core.xml
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.WinForms.xml
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.Wpf.xml
-F:\Z-Image-LauncherWpf\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Z-Image-Launcher.exe

@@ -3,7 +3,7 @@ using System.IO;
 using Microsoft.Win32;
 using System.Management;
 
-namespace ZImageLauncher
+namespace LightPic_Source
 {
     /// <summary>
     /// Windows图形设置检查器
