@@ -1,0 +1,264 @@
+<Window x:Class="ZImageLauncher.ImageBrowserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+         x:Name="ImageBrowser"
+         Title="图片浏览器 - Z-Image" Height="700" Width="1200"
+         WindowStyle="None"
+         AllowsTransparency="True"
+         Background="#0a0a0a"
+         BorderThickness="2"
+         BorderBrush="#9932CC"
+         ResizeMode="CanResizeWithGrip">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas, Courier New"/>
+            <Setter Property="Foreground" Value="#00FF00"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#00FF00"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#00FF00"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="8,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#003300"/>
+                    <Setter Property="Foreground" Value="#CCFFCC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#001100"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="#001100"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶部控制栏 -->
+        <Grid Grid.Row="0" Background="#050505" MouseLeftButtonDown="TopBar_MouseLeftButtonDown">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                <TextBlock Text="🖼️ " FontSize="16"/>
+                <TextBlock Text="图片浏览器" FontSize="14" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0">
+                <Button Content="📁" Width="35" Height="25" Click="BrowseFolder_Click" ToolTip="选择目录"/>
+                <Button Content="🔄" Width="35" Height="25" Click="Refresh_Click" ToolTip="刷新"/>
+                <Button Content="🔍+" Width="35" Height="25" Click="ZoomIn_Click" ToolTip="放大"/>
+                <Button Content="🔍-" Width="35" Height="25" Click="ZoomOut_Click" ToolTip="缩小"/>
+                <Button Content="🔄️" Width="35" Height="25" Click="ResetZoom_Click" ToolTip="重置缩放"/>
+                <Button Content="─" Width="35" Height="25" Click="Minimize_Click" BorderThickness="0"/>
+                <Button Content="☐" Width="35" Height="25" Click="Maximize_Click" BorderThickness="0"/>
+                <Button Content="✕" Width="35" Height="25" Click="Close_Click" BorderThickness="0" Foreground="#FF5555" BorderBrush="#FF5555"/>
+            </StackPanel>
+
+            <Line X1="0" Y1="39" X2="{Binding ActualWidth, ElementName=ImageBrowser}" Y2="39" Stroke="#00FF00" StrokeThickness="0.5" Opacity="0.5"/>
+        </Grid>
+
+        <!-- 主内容区：三栏布局 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" MinWidth="150" MaxWidth="350"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280" MinWidth="200" MaxWidth="400"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧：缩略图列表 -->
+            <Border Grid.Column="0" BorderBrush="#00FF00" BorderThickness="0,0,1,0" Background="#001100">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="118"/>
+                        <RowDefinition Height="Auto" MinHeight="20"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 顶部工具栏 -->
+                    <StackPanel Grid.Row="0" Margin="5,5,5,3">
+                        <TextBlock Text="📁 目录操作" FontSize="11" Foreground="#00AA00" Margin="0,0,0,5"/>
+                        <Button Content="📂 打开目录" Height="28" Click="BrowseFolder_Click" Margin="0,2"/>
+                        <Button Content="🔄 刷新列表" Height="28" Click="Refresh_Click" Margin="0,2"/>
+                        <Button Content="📂 打开Comfyui目录" Height="28" Click="BrowseComfyuiFolder_Click"/>
+                    </StackPanel>
+
+                    <!-- 当前路径显示 -->
+                    <TextBlock Grid.Row="1" x:Name="CurrentPathText" Text="当前目录：" FontSize="10" 
+                               Foreground="#008800" Margin="5,2,5,2" TextTrimming="CharacterEllipsis"/>
+
+                    <!-- 缩略图列表 -->
+                    <ListBox Grid.Row="2" x:Name="ThumbnailList" SelectionChanged="ThumbnailList_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="2" Padding="2" Background="#002200" BorderBrush="#003300" BorderThickness="1"
+                                        Width="180" Height="120">
+                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" 
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- 中间：主图片预览区 -->
+            <Border Grid.Column="1" BorderBrush="#00FF00" BorderThickness="0,0,1,0" Background="#000000">
+                <Grid>
+                    <!-- 缩放控制按钮组 - 左上角 -->
+                    <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10" Background="#002200" BorderBrush="#003300" BorderThickness="1" Padding="5">
+                        <StackPanel>
+                            <Button Content="🔍+" Height="40" Width="60" FontSize="20" Click="ZoomIn_Click" Margin="0,2"/>
+                            <Button Content="🔄️" Height="40" Width="60" FontSize="18" Click="ResetZoom_Click" Margin="0,2"/>
+                            <Button Content="🔍-" Height="40" Width="60" FontSize="20" Click="ZoomOut_Click" Margin="0,2"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 缩放比例显示 -->
+                    <TextBlock x:Name="ZoomLevelText" Text="100%" FontSize="14" Foreground="#00FF00"
+                               HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10"
+                               Background="#002200" Padding="8,4"/>
+
+                    <ScrollViewer x:Name="ImageScrollViewer" HorizontalScrollBarVisibility="Auto" 
+                                  VerticalScrollBarVisibility="Auto" Background="#000000"
+                                  Margin="0,0,0,0" PreviewMouseWheel="ImageScrollViewer_PreviewMouseWheel">
+                        <Image x:Name="MainImage" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
+                               PreviewMouseWheel="MainImage_PreviewMouseWheel"
+                               MouseLeftButtonDown="MainImage_MouseLeftButtonDown"
+                               MouseMove="MainImage_MouseMove"
+                               MouseLeftButtonUp="MainImage_MouseLeftButtonUp">
+                            <Image.RenderTransform>
+                                <ScaleTransform x:Name="ImageScale"/>
+                            </Image.RenderTransform>
+                        </Image>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- 右侧：图片属性栏 -->
+            <Border Grid.Column="2" Background="#001100">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="📊 图片属性" FontSize="14" FontWeight="Bold" 
+                                   Foreground="#00FF00" Margin="0,0,0,10"/>
+
+                        <!-- 文件信息 -->
+                        <TextBlock Text="文件信息" FontSize="12" FontWeight="Bold" 
+                                   Foreground="#00AA00" Margin="0,10,0,5"/>
+                        <Border Background="#002200" BorderBrush="#003300" BorderThickness="1" Padding="8">
+                            <StackPanel x:Name="FileInfoPanel">
+                                <TextBlock Text="文件名：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FileName" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="文件大小：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FileSize" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="文件路径：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FilePath" Text="-" FontSize="11" Margin="10,0,0,3" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="创建时间：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FileCreated" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="修改时间：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FileModified" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 图像信息 -->
+                        <TextBlock Text="图像信息" FontSize="12" FontWeight="Bold" 
+                                   Foreground="#00AA00" Margin="0,10,0,5"/>
+                        <Border Background="#002200" BorderBrush="#003300" BorderThickness="1" Padding="8">
+                            <StackPanel x:Name="ImageInfoPanel">
+                                <TextBlock Text="图像尺寸：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ImageDimensions" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="分辨率：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ImageResolution" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="颜色深度：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ColorDepth" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="格式：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ImageFormat" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                                <TextBlock Text="纵横比：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="AspectRatio" Text="-" FontSize="11" Margin="10,0,0,3"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- EXIF信息 -->
+                        <TextBlock Text="EXIF 信息" FontSize="12" FontWeight="Bold" 
+                                   Foreground="#00AA00" Margin="0,10,0,5"/>
+                        <Border Background="#002200" BorderBrush="#003300" BorderThickness="1" Padding="8">
+                            <StackPanel x:Name="ExifInfoPanel">
+                                <TextBlock Text="相机品牌：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="CameraMake" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="相机型号：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="CameraModel" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="镜头：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="LensModel" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="拍摄时间：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="DateTime" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="快门速度：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ShutterSpeed" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="光圈：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="Aperture" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="ISO：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ISOValue" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="焦距：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="FocalLength" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="曝光补偿：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ExposureComp" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="测光模式：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="MeteringMode" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="闪光灯：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="Flash" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="白平衡：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="WhiteBalance" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="曝光模式：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="ExposureMode" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="拍摄模式：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="SceneMode" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- GPS信息 -->
+                        <TextBlock Text="GPS 定位" FontSize="12" FontWeight="Bold" 
+                                   Foreground="#00AA00" Margin="0,10,0,5"/>
+                        <Border Background="#002200" BorderBrush="#003300" BorderThickness="1" Padding="8">
+                            <StackPanel x:Name="GPSInfoPanel">
+                                <TextBlock Text="纬度：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="GPSLatitude" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="经度：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="GPSLongitude" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                                <TextBlock Text="海拔：" FontSize="11" Foreground="#00AA00"/>
+                                <TextBlock x:Name="GPSAltitude" Text="-" FontSize="11" Margin="10,0,0,2"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,131 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:mainwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\codebackup.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:codebackup.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\imagebrowserwindow.xaml.cs||{8B382828-6202-11D1-8870-0000F87579D2}|",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:imagebrowserwindow.xaml.cs||{8B382828-6202-11D1-8870-0000F87579D2}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\app_script.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:app_script.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\imagebrowserwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:imagebrowserwindow.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|c:\\wowserver\\ai\\zimage_dev\\z-image-launcherwpf\\z-image-launcher\\z-image-app.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{709AC2D3-D4F4-4B04-979A-A9EAFB9E0D9B}|Z-Image-Launcher.csproj|solutionrelative:z-image-app.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 5,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MainWindow.xaml",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\MainWindow.xaml",
+              "RelativeDocumentMoniker": "MainWindow.xaml",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\MainWindow.xaml",
+              "RelativeToolTip": "MainWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-01-12T23:28:29.14Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CodeBackup.txt",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\CodeBackup.txt",
+              "RelativeDocumentMoniker": "CodeBackup.txt",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\CodeBackup.txt",
+              "RelativeToolTip": "CodeBackup.txt",
+              "ViewState": "AgIAAA8IAAAAAAAAAAAswCoIAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2026-01-12T21:21:12.965Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ImageBrowserWindow.xaml",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\ImageBrowserWindow.xaml",
+              "RelativeDocumentMoniker": "ImageBrowserWindow.xaml",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\ImageBrowserWindow.xaml",
+              "RelativeToolTip": "ImageBrowserWindow.xaml",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
+              "WhenOpened": "2026-01-12T07:32:20.643Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ImageBrowserWindow.xaml.cs",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\ImageBrowserWindow.xaml.cs",
+              "RelativeDocumentMoniker": "ImageBrowserWindow.xaml.cs",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\ImageBrowserWindow.xaml.cs",
+              "RelativeToolTip": "ImageBrowserWindow.xaml.cs",
+              "ViewState": "AgIAAIQCAAAAAAAAAABIwJsCAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-12T07:21:18.485Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Z-Image-App.py",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\Z-Image-App.py",
+              "RelativeDocumentMoniker": "Z-Image-App.py",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\Z-Image-App.py",
+              "RelativeToolTip": "Z-Image-App.py",
+              "ViewState": "AgIAAIQAAAAAAAAAAABIwGAAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-01-11T03:35:55.679Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "MainWindow.xaml.cs",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\MainWindow.xaml.cs",
+              "RelativeToolTip": "MainWindow.xaml.cs",
+              "ViewState": "AgIAADUJAAAAAAAAAAAuwE8JAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-02T05:27:50.023Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "app_script.txt",
+              "DocumentMoniker": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\app_script.txt",
+              "RelativeDocumentMoniker": "app_script.txt",
+              "ToolTip": "C:\\WoWserver\\AI\\Zimage_Dev\\Z-Image-LauncherWpf\\Z-Image-Launcher\\app_script.txt",
+              "RelativeToolTip": "app_script.txt",
+              "ViewState": "AgIAAGQJAAAAAAAAAAAmwIQJAABYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2026-01-02T08:27:04.323Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

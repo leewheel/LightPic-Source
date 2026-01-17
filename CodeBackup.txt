@@ -1,0 +1,2090 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using Microsoft.Web.WebView2.Wpf;
+
+namespace ZImageLauncher
+{
+    public partial class MainWindow : Window
+    {
+        // --- 星空特效定义 ---
+        private class Star
+        {
+            public Ellipse Shape;
+            public double Speed;    // 移动速度
+            public double Phase;    // 闪烁初始相位
+            public double PulseSpeed; // 闪烁频率
+        }
+
+        // 新增：天体对象定义
+        private class CelestialBody
+        {
+            public FrameworkElement Visual; // 星体在UI上的元素
+            public double Speed;            // 移动速度
+            public double X;                // 当前 X 坐标
+            public double Y;                // 当前 Y 坐标
+            public string Type;             // 类型（用于特殊动画，如旋转）
+        }
+
+        // 在 TimeParticle 类中增加颜色处理
+        public class TimeParticle
+        {
+            public Ellipse Shape;
+            public double TargetX;
+            public double TargetY;
+            public double CurrentX;
+            public double CurrentY;
+
+            // 每一帧更新位置和填充颜色
+            public void Update(double ease, Brush currentBrush)
+            {
+                CurrentX += (TargetX - CurrentX) * ease;
+                CurrentY += (TargetY - CurrentY) * ease;
+                Canvas.SetLeft(Shape, CurrentX);
+                Canvas.SetTop(Shape, CurrentY);
+
+                // 应用实时计算的呼吸灯颜色
+                Shape.Fill = currentBrush;
+            }
+        }
+
+        private readonly Dictionary<char, List<Point>> _digitPatterns = new Dictionary<char, List<Point>>
+        {
+            { '0', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(0,1), new Point(2,1), new Point(0,2), new Point(2,2), new Point(0,3), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '1', new List<Point>{new Point(2,0), new Point(2,1), new Point(2,2), new Point(2,3), new Point(2,4)}},
+            { '2', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(2,1), new Point(1,2), new Point(0,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '3', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(2,1), new Point(1,2), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '4', new List<Point>{new Point(0,0), new Point(0,1), new Point(2,0), new Point(2,1), new Point(0,2), new Point(1,2), new Point(2,2), new Point(2,3), new Point(2,4)}},
+            { '5', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(0,1), new Point(0,2), new Point(1,2), new Point(2,2), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '6', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(0,1), new Point(0,2), new Point(1,2), new Point(2,2), new Point(0,3), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '7', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(2,1), new Point(2,2), new Point(2,3), new Point(2,4)}},
+            { '8', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(0,1), new Point(2,1), new Point(0,2), new Point(1,2), new Point(2,2), new Point(0,3), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { '9', new List<Point>{new Point(0,0), new Point(1,0), new Point(2,0), new Point(0,1), new Point(2,1), new Point(0,2), new Point(1,2), new Point(2,2), new Point(2,3), new Point(0,4), new Point(1,4), new Point(2,4)}},
+            { ':', new List<Point>{new Point(0,1), new Point(0,3)}}
+         };
+
+        // ==========================================
+        // 加密/解密辅助函数
+        // ==========================================
+        private byte[] RC4Encrypt(byte[] key, byte[] data)
+        {
+            int a, i, j, k, tmp;
+            int[] sbox = new int[256];
+
+            // 密钥调度算法 (KSA)
+            for (i = 0; i < 256; i++)
+            {
+                sbox[i] = i;
+            }
+            for (j = i = 0; i < 256; i++)
+            {
+                j = (j + sbox[i] + key[i % key.Length]) % 256;
+                tmp = sbox[i];
+                sbox[i] = sbox[j];
+                sbox[j] = tmp;
+            }
+
+            // 伪随机生成算法 (PRGA)
+            byte[] result = new byte[data.Length];
+            for (a = j = i = 0; i < data.Length; i++)
+            {
+                a = (a + 1) % 256;
+                j = (j + sbox[a]) % 256;
+                tmp = sbox[a];
+                sbox[a] = sbox[j];
+                sbox[j] = tmp;
+                k = sbox[(sbox[a] + sbox[j]) % 256];
+                result[i] = (byte)(data[i] ^ k);
+            }
+            return result;
+        }
+
+        // ==========================================
+        // Python 启动器源码 (内嵌)
+        // ==========================================
+        private const string PythonLauncherCode = @"
+import os
+import sys
+
+def rc4_decrypt(key_bytes, data_bytes):
+    sbox = list(range(256))
+    j = 0
+    # KSA
+    for i in range(256):
+        j = (j + sbox[i] + key_bytes[i % len(key_bytes)]) % 256
+        sbox[i], sbox[j] = sbox[j], sbox[i]
+    
+    i = j = 0
+    out = []
+    for char in data_bytes:
+        i = (i + 1) % 256
+        j = (j + sbox[i]) % 256
+        sbox[i], sbox[j] = sbox[j], sbox[i]
+        out.append(char ^ sbox[(sbox[i] + sbox[j]) % 256])
+    return bytes(out)
+
+def main():
+    SECRET_KEY = 'Z-Image-Secret-Key-2024' 
+    DAT_FILE = 'Z-Image-App.dat'
+    
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    dat_path = os.path.join(current_dir, DAT_FILE)
+
+    if not os.path.exists(dat_path):
+        print(f'[Error] Encrypted data file not found: {dat_path}')
+        input('Press Enter to exit...')
+        sys.exit(1)
+
+    with open(dat_path, 'rb') as f:
+        encrypted_data = f.read()
+
+    key_bytes = SECRET_KEY.encode('utf-8')
+    decrypted_code = rc4_decrypt(key_bytes, encrypted_data).decode('utf-8')
+
+    exec_globals = {
+        '__name__': '__main__',
+        '__file__': os.path.abspath(__file__), 
+        '__builtins__': __builtins__,
+    }
+
+    try:
+        exec(decrypted_code, exec_globals)
+    except Exception as e:
+        print(f'[Error] Execution failed: {e}')
+        import traceback
+        traceback.print_exc()
+        input('Press Enter to exit...')
+
+if __name__ == '__main__':
+    main()
+";
+
+        private List<TimeParticle> _clockParticles = new List<TimeParticle>();
+        private string _lastTimeStr = "";
+
+        private List<Star> _stars = new List<Star>();
+        private List<CelestialBody> _planets = new List<CelestialBody>(); // 新增
+        private const int StarCount = 188; // 星星密度
+
+        // 核心进程对象
+        private Process _pythonProcess;
+
+        // 任务状态跟踪
+        private bool _isGeneratingImage = false;  // 是否正在出图
+        private string _currentUI = null; // "webui" | "comfyui" | null
+        private enum UIMode { None, WebUI, ComfyUI }
+        private UIMode _currentUIMode = UIMode.None;
+        private const string WebUIMode = "WebUI";
+        private const string ComfyUIMode = "ComfyUI";
+
+        // UI 动画
+        private DispatcherTimer _animTimer;
+        private Random _rnd = new Random();
+        private Stopwatch _waveStopwatch = new Stopwatch();
+
+        // 日志文件路径（每次启动生成新文件）
+        private string _currentLogFilePath = "";
+
+        // 文字波浪变量
+        private List<TextBlock> _waveCharsLine1 = new List<TextBlock>();
+        private List<TextBlock> _waveCharsLine2 = new List<TextBlock>();
+
+        // 字体配置
+        private readonly FontFamily _sciFiFont = new FontFamily("Consolas");
+        private readonly double _fontSize1 = 24;
+        private readonly double _fontSize2 = 14;
+        private readonly double _charWidth = 14.0;
+
+        // ==========================================
+        // 路径配置
+        // ==========================================
+        private const string ResourceFileName = "Z-Image-App.py";
+
+        // 类级别的路径变量
+        private readonly string _physicalRoot;     // APP ROOT (即 Z-Image 目录)
+        private readonly string _pythonEnvDir;    // python_env 目录
+        private readonly string _pythonExePath;    // python.exe 路径
+
+        private readonly string ModelBaseDir;     // 模型根目录 (即 EXE 所在目录)
+
+        private readonly string SharedPythonDir; // 共享环境目录 (即 EXE 同级的 python_env)
+        private readonly List<string> _extractedFilePaths = new List<string>();
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            this.Loaded += MainWindow_Loaded;
+            this.Closing += MainWindow_Closing;
+            this.SizeChanged += MainWindow_SizeChanged;
+
+            // 获取 EXE 所在目录 (即 Z-Image 根目录)
+            _physicalRoot = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            this.ModelBaseDir = _physicalRoot;
+            this.SharedPythonDir = System.IO.Path.Combine(_physicalRoot, "python_env");
+
+            // 初始化路径
+            _pythonEnvDir = SharedPythonDir;
+            _pythonExePath = System.IO.Path.Combine(_pythonEnvDir, "python.exe");
+
+            Log($">> APP ROOT: {_physicalRoot}", Brushes.Cyan);
+            Log($">> PYTHON ENV: {_pythonEnvDir}", Brushes.Cyan);
+
+            // 强制立即更新布局
+            this.UpdateLayout();
+
+            _waveStopwatch.Start();
+
+            // --- 粒子时钟初始化 ---
+            InitClock(); // 必须调用初始化
+
+            // 启动动画计时器
+            _animTimer = new DispatcherTimer();
+            _animTimer.Interval = TimeSpan.FromMilliseconds(30);
+            _animTimer.Tick += AnimTimer_Tick;
+            _animTimer.Start();
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            Log(">> [DIAGNOSTIC] SYSTEM INITIALIZING...");
+
+            InitializeStarField();
+            InitializeWaveText();
+            CleanExistingPython();
+            SpawnCelestialBody();
+
+            Log(">> [DIAGNOSTIC] Initializing WebView2 Runtime...");
+            try
+            {
+                // 【关键修复】禁用 WebView2 GPU 加速，避免与 PyTorch 竞争 GPU 资源
+                var envOptions = new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions();
+                // envOptions.AllowSingleSignOnUsingOSPrimaryAccount = true;
+                
+                // 禁用硬件加速（防止与 PyTorch GPU 计算冲突）
+                string[] args = { "--disable-gpu", "--disable-software-rasterizer" };
+                envOptions = new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions(
+                    additionalBrowserArguments: string.Join(" ", args));
+                
+                var environment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(null, null, envOptions);
+                await MainWebView.EnsureCoreWebView2Async(environment);
+                Log(">> [DIAGNOSTIC] WebView2 Ready (GPU Disabled).");
+            }
+            catch (Exception ex)
+            {
+                Log($"[FATAL ERROR] WebView2 Init Failed: {ex.Message}", Brushes.Red);
+                Application.Current.Shutdown();
+                return;
+            }
+
+            // 【关键修改】默认不自动启动，等待用户点击按钮
+            // DeployAndRunModel(".", ResourceFileName);
+        }
+        // ==========================================
+        // 动态星空逻辑
+        // ==========================================
+        private void InitializeStarField()
+        {
+            StarCanvas.Children.Clear();
+            _stars.Clear();
+
+            double width = StarCanvas.ActualWidth > 0 ? StarCanvas.ActualWidth : 1200;
+            double height = 80; // 顶部区域高度
+
+            for (int i = 0; i < StarCount; i++)
+            {
+                // 随机星星大小 (0.5 到 2.5 像素)
+                double size = _rnd.NextDouble() * 2.0 + 0.5;
+
+                // 越大的星星越亮，越小的越暗
+                byte brightness = (byte)_rnd.Next(150, 256);
+                var starBrush = new SolidColorBrush(Color.FromRgb(brightness, brightness, (byte)_rnd.Next(200, 256)));
+
+                var starShape = new Ellipse
+                {
+                    Width = size,
+                    Height = size,
+                    Fill = starBrush,
+                    Opacity = _rnd.NextDouble()
+                };
+
+                double x = _rnd.NextDouble() * width;
+                double y = _rnd.NextDouble() * height;
+
+                Canvas.SetLeft(starShape, x);
+                Canvas.SetTop(starShape, y);
+
+                StarCanvas.Children.Add(starShape);
+
+                _stars.Add(new Star
+                {
+                    Shape = starShape,
+                    // 视差滚动：大的星星移动快，营造远近感
+                    Speed = (size / 2.5) * 0.5 + 0.1,
+                    Phase = _rnd.NextDouble() * Math.PI * 2,
+                    PulseSpeed = _rnd.NextDouble() * 0.1 + 0.05
+                });
+            }
+        }
+
+
+
+        // 修改后的初始化和更新逻辑
+        private void InitClock()
+        {
+            ClockCanvas.Children.Clear();
+            _clockParticles.Clear();
+
+            for (int i = 0; i < 180; i++)
+            {
+                var p = new TimeParticle
+                {
+                    Shape = new Ellipse { Width = 4.0, Height = 4.0, Opacity = 0.8 },
+                    // 【炫酷入场逻辑】
+                    // 初始位置设在屏幕外及随机远点，产生从四周向中心汇聚的动态
+                    CurrentX = _rnd.Next(-800, 1600),
+                    CurrentY = _rnd.Next(-400, 800)
+                };
+                _clockParticles.Add(p);
+                ClockCanvas.Children.Add(p.Shape);
+            }
+        }
+
+        private void UpdateClockParticles()
+        {
+            string currentTime = DateTime.Now.ToString("HH:mm:ss");
+
+            // --- 1. 计算呼吸灯颜色 (天蓝 <-> 翠绿) ---
+            double time = _waveStopwatch.Elapsed.TotalSeconds;
+            // 使用正弦函数平滑循环 (0.0 到 1.0)
+            double pulse = (Math.Sin(time * 2.0) + 1.0) / 2.0;
+
+            Color colorStart = Colors.SkyBlue; // 天蓝色
+            Color colorEnd = Colors.LimeGreen; // 翠绿色
+
+            Color currentVibeColor = Color.FromRgb(
+                (byte)(colorStart.R + (colorEnd.R - colorStart.R) * pulse),
+                (byte)(colorStart.G + (colorEnd.G - colorStart.G) * pulse),
+                (byte)(colorStart.B + (colorEnd.B - colorStart.B) * pulse)
+            );
+            Brush frameBrush = new SolidColorBrush(currentVibeColor);
+
+            // --- 2. 时间跳动检查 ---
+            if (currentTime != _lastTimeStr)
+            {
+                _lastTimeStr = currentTime;
+                AssignTargetPositions(currentTime);
+            }
+
+            // --- 3. 粒子运动更新 ---
+            foreach (var p in _clockParticles)
+            {
+                // 0.12 是移动灵敏度，数字越小入场汇聚越有“丝滑流沙”感
+                p.Update(0.12, frameBrush);
+            }
+        }
+
+        private void AssignTargetPositions(string timeText)
+        {
+            int particleIndex = 0;
+            double charOffset = 0;
+
+            foreach (char c in timeText)
+            {
+                if (_digitPatterns.ContainsKey(c))
+                {
+                    foreach (var dot in _digitPatterns[c])
+                    {
+                        if (particleIndex < _clockParticles.Count)
+                        {
+                            var p = _clockParticles[particleIndex];
+                            // 点阵间距 5，字符间距由 charOffset 控制
+                            p.TargetX = charOffset + (dot.X * 5);
+                            p.TargetY = dot.Y * 5;
+                            p.Shape.Visibility = Visibility.Visible;
+                            particleIndex++;
+                        }
+                    }
+                }
+                charOffset += (c == ':' ? 12 : 25);
+            }
+
+            // 多余粒子随机散开并逐渐隐藏
+            for (int i = particleIndex; i < _clockParticles.Count; i++)
+            {
+                _clockParticles[i].TargetX += _rnd.Next(-20, 20);
+                _clockParticles[i].TargetY += _rnd.Next(-20, 20);
+                _clockParticles[i].Shape.Visibility = Visibility.Collapsed;
+            }
+        }
+        private void UpdateStarAnimation()
+        {
+            if (_stars.Count == 0) return;
+
+            double width = StarCanvas.ActualWidth;
+            double time = _waveStopwatch.Elapsed.TotalSeconds;
+
+            foreach (var star in _stars)
+            {
+                // 1. 移动逻辑
+                double x = Canvas.GetLeft(star.Shape);
+                x -= star.Speed;
+                if (x < -5) x = width + 5;
+                Canvas.SetLeft(star.Shape, x);
+
+                // 2. 闪烁逻辑 (波形透明度)
+                star.Shape.Opacity = 0.2 + Math.Abs(Math.Sin(time * 2 + star.Phase)) * 0.8;
+            }
+        }
+
+        // 新增：创建各种天体的可视化图形
+        private FrameworkElement CreateCelestialVisual(string type, double size)
+        {
+            // 1. 建立足够大的容器，防止光环和光晕边缘被裁剪
+            Grid container = new Grid
+            {
+                Width = size * 5,
+                Height = size * 5,
+                ClipToBounds = false
+            };
+
+            // 2. 核心球体（作为所有行星的基础）
+            Ellipse body = new Ellipse
+            {
+                Width = size,
+                Height = size,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = new RotateTransform(0),
+                Name = "BodyPart" // 标记用于动画自转
+            };
+
+            // 3. 3D 阴影蒙版：利用径向渐变模拟球体的受光面和背光面
+            var shadowMask = new RadialGradientBrush
+            {
+                Center = new Point(0.3, 0.3),     // 光源位于左上方
+                GradientOrigin = new Point(0.3, 0.3),
+                RadiusX = 0.8,
+                RadiusY = 0.8
+            };
+            shadowMask.GradientStops.Add(new GradientStop(Colors.White, 0.0));      // 亮部完全可见
+            shadowMask.GradientStops.Add(new GradientStop(Color.FromArgb(255, 40, 40, 40), 1.0)); // 暗部半透明黑
+
+            switch (type)
+            {
+                case "Saturn":
+                    // --- 融合版：细腻的多层土星光环 ---
+                    var ringBrush = new RadialGradientBrush();
+                    ringBrush.GradientStops.Add(new GradientStop(Colors.Transparent, 0.45)); // 内部空隙
+                    ringBrush.GradientStops.Add(new GradientStop(Color.FromRgb(210, 180, 140), 0.52)); // 内环 A
+                    ringBrush.GradientStops.Add(new GradientStop(Color.FromRgb(60, 50, 40), 0.58));    // 卡西尼缝
+                    ringBrush.GradientStops.Add(new GradientStop(Color.FromRgb(180, 160, 130), 0.65)); // 外环 B
+                    ringBrush.GradientStops.Add(new GradientStop(Color.FromRgb(140, 120, 100), 0.75)); // 边缘带
+                    ringBrush.GradientStops.Add(new GradientStop(Colors.Transparent, 0.88));
+
+                    Ellipse ring = new Ellipse
+                    {
+                        Width = size * 3.2,
+                        Height = size * 0.9,
+                        Fill = ringBrush,
+                        Opacity = 0.85,
+                        RenderTransform = new RotateTransform(18), // 固定的光环倾角
+                        RenderTransformOrigin = new Point(0.5, 0.5),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Center
+                    };
+                    container.Children.Add(ring);
+
+                    // 土星主体（琥珀色渐变 + 3D 阴影）
+                    body.Fill = new RadialGradientBrush(Color.FromRgb(240, 220, 180), Color.FromRgb(150, 130, 90));
+                    body.OpacityMask = shadowMask;
+                    container.Children.Add(body);
+                    break;
+
+                case "Jupiter":
+                    // --- 融合版：五花肉纹理 + 3D 阴影 ---
+                    var jupiterBrush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+                    jupiterBrush.GradientStops.Add(new GradientStop(Color.FromRgb(211, 190, 168), 0.0));
+                    jupiterBrush.GradientStops.Add(new GradientStop(Color.FromRgb(165, 125, 85), 0.3));
+                    jupiterBrush.GradientStops.Add(new GradientStop(Color.FromRgb(211, 190, 168), 0.5));
+                    jupiterBrush.GradientStops.Add(new GradientStop(Color.FromRgb(140, 90, 60), 0.7));
+                    jupiterBrush.GradientStops.Add(new GradientStop(Color.FromRgb(211, 190, 168), 1.0));
+
+                    body.Fill = jupiterBrush;
+                    body.OpacityMask = shadowMask;
+                    container.Children.Add(body);
+                    break;
+
+                case "Mars":
+                    // --- 融合版：铁锈红 + 深度阴影 ---
+                    body.Fill = new RadialGradientBrush(Color.FromRgb(193, 68, 14), Color.FromRgb(60, 20, 5));
+                    body.OpacityMask = shadowMask;
+                    container.Children.Add(body);
+                    break;
+
+                case "Oumuamua":
+                    // 制作一个极细长的非对称梭形 (1:8 比例)
+                    double length = size * 6;
+                    double thickness = size * 0.8;
+
+                    System.Windows.Shapes.Path oumuamua = new System.Windows.Shapes.Path
+                    {
+                        // 颜色：深红褐色（暗物质堆积感）
+                        Fill = new LinearGradientBrush
+                        {
+                            StartPoint = new Point(0, 0),
+                            EndPoint = new Point(1, 0.5),
+                            GradientStops = new GradientStopCollection {
+                                            new GradientStop(Color.FromRgb(60, 30, 30), 0.0), // 暗红
+                                            new GradientStop(Color.FromRgb(40, 20, 20), 0.6), // 阴影
+                                            new GradientStop(Color.FromRgb(20, 10, 10), 1.0)  // 焦黑
+                            }
+                        },
+                        // 模拟不规则岩石边缘（手动构造略显曲折的路径）
+                        Data = Geometry.Parse($"M 0,{thickness / 2} " +
+                                              $"L {length * 0.3},{thickness * 0.2} " +
+                                              $"L {length * 0.7},0 " +
+                                              $"L {length},{thickness / 2} " +
+                                              $"L {length * 0.6},{thickness} " +
+                                              $"L {length * 0.2},{thickness * 0.8} Z"),
+                        RenderTransformOrigin = new Point(0.5, 0.5),
+                        RenderTransform = new RotateTransform(0),
+                        Name = "BodyPart"
+                    };
+
+                    // 奥陌陌不应该有明亮光晕，给它一个很淡的黑色阴影增强立体感即可
+                    container.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        BlurRadius = 8,
+                        ShadowDepth = 0,
+                        Opacity = 0.6,
+                        Color = Colors.Black
+                    };
+                    container.Children.Add(oumuamua);
+                    break;
+            }
+
+            // 4. 全局大气光晕：为整个容器添加白色/淡黄色的柔光
+            container.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = size * 1.5,
+                ShadowDepth = 0,
+                Opacity = 0.35,
+                Color = Color.FromRgb(255, 253, 230) // 淡淡的米黄色光晕，比纯白更真实
+            };
+
+            return container;
+        }
+
+        // 新增：随机生成一个天体
+        private void SpawnCelestialBody()
+        {
+            string[] types = { "Jupiter", "Saturn", "Mars", "Oumuamua" };
+            string selected = types[_rnd.Next(types.Length)];
+
+            // 重新定义尺寸
+            double size = (selected == "Oumuamua") ? _rnd.Next(8, 12) : _rnd.Next(25, 45);
+
+            // 获取画布宽度
+            double canvasWidth = StarCanvas.ActualWidth > 0 ? StarCanvas.ActualWidth : 1200;
+
+            // 【核心修改 1】：startY 代表我们希望星球中心出现的高度。
+            // 既然顶部栏高 80，我们将中心点随机定在 20 到 60 之间。
+            double startY = _rnd.Next(20, 60);
+            double startX = canvasWidth + 100;
+
+            FrameworkElement visual = CreateCelestialVisual(selected, size);
+
+            var planet = new CelestialBody
+            {
+                Visual = visual,
+                Type = selected,
+                X = startX,
+                Y = startY,
+                Speed = (selected == "Oumuamua") ? 2.0 : 0.5
+            };
+
+            Panel.SetZIndex(visual, 10);
+
+            Canvas.SetLeft(visual, planet.X);
+
+            // 【核心修改 2】：必须减去容器高度的一半（size * 5 / 2）。
+            // 这样 planet.Y (中心点) 才会对齐到你预设的 startY，星球主体就回到了 80 像素的框内。
+            Canvas.SetTop(visual, planet.Y - (size * 5 / 2));
+
+            StarCanvas.Children.Add(visual);
+            _planets.Add(planet);
+        }
+
+        // 新增：天体动画更新
+        private void UpdateCelestialAnimation()
+        {
+            for (int i = _planets.Count - 1; i >= 0; i--)
+            {
+                var p = _planets[i];
+                p.X -= p.Speed;
+                Canvas.SetLeft(p.Visual, p.X);
+
+                if (p.Visual is Grid g)
+                {
+                    // 查找标记为 "BodyPart" 的元素
+                    var body = g.Children.OfType<FrameworkElement>().FirstOrDefault(e => e.Name == "BodyPart");
+
+                    if (body != null && body.RenderTransform is RotateTransform rt)
+                    {
+                        if (p.Type == "Oumuamua")
+                        {
+                            // 奥陌陌：剧烈翻滚
+                            rt.Angle += 0.6;
+                        }
+                        else if (p.Type == "Saturn")
+                        {
+                            // 土星：球体不动，或者极慢地微旋（球体圆形的旋转几乎看不出来）
+                            // 也可以给光环加一个微小的缩放动画来模拟抖动
+                        }
+                        else
+                        {
+                            // 其他行星：缓慢自转（1.0 左右）
+                            rt.Angle += 0.3;
+                        }
+                    }
+                }
+
+                if (p.X < -400)
+                {
+                    StarCanvas.Children.Remove(p.Visual);
+                    _planets.RemoveAt(i);
+                }
+            }
+
+            if (_rnd.Next(0, 900) == 1 && _planets.Count < 1) // 提高概率，上限增加到 4 个
+            {
+                SpawnCelestialBody();
+            }
+        }
+        //private string GetExeDirectory()
+        //{
+        //    try
+        //    {
+        //        return System.IO.Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log($"[ERROR] Failed to get physical directory: {ex.Message}", Brushes.Red);
+        //        return AppDomain.CurrentDomain.BaseDirectory;
+        //    }
+        //}
+
+        // ==========================================
+        // 核心清理逻辑 (修改)
+        // ==========================================
+        private void CleanupScript()
+        {
+            foreach (var path in _extractedFilePaths)
+            {
+                try
+                {
+                    if (File.Exists(path))
+                    {
+                        File.SetAttributes(path, FileAttributes.Normal);
+                        File.Delete(path);
+                        Log($"清理临时文件: {System.IO.Path.GetFileName(path)}", Brushes.Gray);
+                    }
+                }
+                catch { }
+            }
+            _extractedFilePaths.Clear();
+        }
+
+        private void CleanExistingPython()
+        {
+            try
+            {
+                var processes = Process.GetProcessesByName("python");
+                if (processes.Length > 0)
+                {
+                    Log($">> [WARN] Found {processes.Length} existing python processes. Cleaning...", Brushes.Yellow);
+                    foreach (var p in processes)
+                    {
+                        try { p.Kill(); p.WaitForExit(1000); } catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // ==========================================
+        // 动画逻辑 (保持不变)
+        // ==========================================
+        //private void InitializeStarField() { }
+        private void InitializeWaveText()
+        {
+            WaveCanvas.Children.Clear();
+            _waveCharsLine1.Clear();
+            _waveCharsLine2.Clear();
+
+            double cx = WaveCanvas.ActualWidth;
+            double cy = WaveCanvas.ActualHeight;
+
+            if (double.IsNaN(cx)) cx = 800;
+            if (double.IsNaN(cy)) cy = 80;
+
+            double baseY1 = cy / 2 - 12;
+            string text1 = "Z-Image-Turbo";
+            double totalWidth1 = text1.Length * _charWidth;
+            double startX1 = (cx - totalWidth1) / 2;
+
+            for (int i = 0; i < text1.Length; i++)
+            {
+                TextBlock tb = new TextBlock
+                {
+                    Text = text1[i].ToString(),
+                    FontSize = _fontSize1,
+                    FontFamily = _sciFiFont,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Colors.Cyan)
+                };
+                Canvas.SetLeft(tb, startX1 + i * _charWidth);
+                Canvas.SetTop(tb, baseY1);
+                WaveCanvas.Children.Add(tb);
+                _waveCharsLine1.Add(tb);
+            }
+
+            double baseY2 = cy / 2 + 14;
+            string text2 = "LowVram-Edition-By-Leewheel V1.260112";
+            double totalWidth2 = text2.Length * _charWidth;
+            double startX2 = (cx - totalWidth2) / 2;
+
+            for (int i = 0; i < text2.Length; i++)
+            {
+                TextBlock tb = new TextBlock
+                {
+                    Text = text2[i].ToString(),
+                    FontSize = _fontSize2,
+                    FontFamily = _sciFiFont,
+                    Foreground = new SolidColorBrush(Colors.Cyan),
+                    Opacity = 0.8
+                };
+                Canvas.SetLeft(tb, startX2 + i * _charWidth);
+                Canvas.SetTop(tb, baseY2);
+                WaveCanvas.Children.Add(tb);
+                _waveCharsLine2.Add(tb);
+            }
+        }
+
+        private void AnimTimer_Tick(object sender, EventArgs e)
+        {
+            UpdateStarAnimation();      // 更新星空
+            UpdateCelestialAnimation(); // 新增：更新星球/天体
+            UpdateWaveTextAnimation();
+            UpdateClockParticles();     // 【新增】更新粒子时钟
+        }
+
+        private void UpdateWaveTextAnimation()
+        {
+            if (_waveCharsLine1.Count == 0) return;
+
+            double cy = WaveCanvas.ActualHeight;
+            double time = _waveStopwatch.Elapsed.TotalSeconds;
+
+            double baseY1 = cy / 2 - 12;
+            for (int i = 0; i < _waveCharsLine1.Count; i++)
+            {
+                var tb = _waveCharsLine1[i];
+                double waveOffset = Math.Sin(time * 3.0 + i * 0.5) * 8.0;
+                Canvas.SetTop(tb, baseY1 + waveOffset);
+                UpdateCharColor(tb);
+            }
+
+            double baseY2 = cy / 2 + 14;
+            for (int i = 0; i < _waveCharsLine2.Count; i++)
+            {
+                var tb = _waveCharsLine2[i];
+                double waveOffset = Math.Sin(time * 3.0 + i * 0.5 + 1.5) * 8.0;
+                Canvas.SetTop(tb, baseY2 + waveOffset);
+                UpdateCharColor(tb);
+            }
+        }
+
+        private void UpdateCharColor(TextBlock tb)
+        {
+            var currentColor = ((SolidColorBrush)tb.Foreground).Color;
+            byte r = currentColor.R, g = currentColor.G, b = currentColor.B;
+            if (r == 255 && g < 255 && b == 0) g++;
+            else if (g == 255 && r > 0 && b == 0) r--;
+            else if (g == 255 && b < 255 && r == 0) b++;
+            else if (b == 255 && g > 0 && r == 0) g--;
+            else if (b == 255 && r < 255 && g == 0) r++;
+            else if (r == 255 && b > 0 && g == 0) b--;
+            tb.Foreground = new SolidColorBrush(Color.FromRgb(r, g, b));
+        }
+
+        private void TopBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ButtonState == MouseButtonState.Pressed)
+                this.DragMove();
+        }
+
+        // ==========================================
+        // 核心启动逻辑
+        // ==========================================
+        private string FindPythonExecutable()
+        {
+            // 1. 尝试共享环境根目录 (Z-Image/python_env/python.exe)
+            string sharedDir = this.SharedPythonDir;
+            string path1 = System.IO.Path.Combine(sharedDir, "python.exe");
+            if (File.Exists(path1))
+            {
+                return path1;
+            }
+
+            // 2. 尝试 Scripts 子目录
+            string path2 = System.IO.Path.Combine(sharedDir, "Scripts", "python.exe");
+            if (File.Exists(path2))
+            {
+                return path2;
+            }
+
+            Log($"[DIAGNOSTIC] 找不到Python路径: {sharedDir}", Brushes.Red);
+            return null;
+        }
+
+        private void DeployAndRunModel(string folderName, string scriptFileName)
+        {
+            // 目标目录 = Z-Image根目录 + folderName (.) = Z-Image根目录
+            string targetDir = System.IO.Path.Combine(ModelBaseDir, folderName);
+
+            // 规范化路径
+            targetDir = System.IO.Path.GetFullPath(targetDir);
+
+            // 旧脚本路径 (可能存在上一版运行留下的 .py 文件，需清理)
+            string oldTargetScriptPath = System.IO.Path.Combine(targetDir, scriptFileName);
+
+            // 确保目录存在 (虽然通常根目录肯定存在)
+            Directory.CreateDirectory(targetDir);
+
+            // 如果旧脚本存在，先删除以便覆盖更新
+            if (File.Exists(oldTargetScriptPath))
+            {
+                try
+                {
+                    File.SetAttributes(oldTargetScriptPath, FileAttributes.Normal);
+                    File.Delete(oldTargetScriptPath);
+                }
+                catch { }
+            }
+
+            // 调用新的加密释放方法
+            if (!ExtractAndHideResource(scriptFileName, targetDir))
+            {
+                Log($"无法启动：未找到程序内嵌的 Python 脚本文件 ({scriptFileName})。", Brushes.Red);
+                return;
+            }
+
+            // 【关键修复】先执行低显存修复补丁，再启动 WebUI
+            string fixScriptPath = System.IO.Path.Combine(targetDir, "low_vram_fix.py");
+            string pythonExe = FindPythonExecutable();
+            if (System.IO.File.Exists(fixScriptPath))
+            {
+                Log("正在应用低显存模式修复补丁...", Brushes.Yellow);
+                StartPython(pythonExe, fixScriptPath);
+                System.Threading.Thread.Sleep(2000); // 等待2秒让补丁生效
+            }
+
+            if (string.IsNullOrEmpty(pythonExe))
+            {
+                Log($"错误: 未找到共享 Python 环境 ({SharedPythonDir})", Brushes.Red);
+                return;
+            }
+
+            // --- 关键修改：启动 Launcher.py ---
+            string launcherPath = System.IO.Path.Combine(targetDir, "Z-Image-Launcher.py");
+            StartPython(pythonExe, launcherPath);
+        }
+
+        private bool ExtractAndHideResource(string scriptFileName, string targetDir)
+        {
+            try
+            {
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                string resourceName = FindResourceName(scriptFileName);
+
+                if (string.IsNullOrEmpty(resourceName))
+                {
+                    Log($"【严重错误】在程序内部找不到资源文件: {scriptFileName}");
+                    string[] all = assembly.GetManifestResourceNames();
+                    Log("--- 当前程序包含的资源列表 ---");
+                    if (all.Length == 0) Log("(空，说明没有文件被嵌入)");
+                    foreach (var s in all) Log(s);
+                    Log("------------------------------");
+                    return false;
+                }
+
+                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string scriptContent = reader.ReadToEnd();
+                    // 替换配置：禁止浏览器自动打开
+                    scriptContent = scriptContent.Replace("inbrowser=True", "inbrowser=False");
+
+                    // 1. 准备加密
+                    string encryptionKey = "Z-Image-Secret-Key-2024";
+                    byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(encryptionKey);
+                    byte[] scriptBytes = System.Text.Encoding.UTF8.GetBytes(scriptContent);
+
+                    // 2. RC4 加密
+                    byte[] encryptedBytes = RC4Encrypt(keyBytes, scriptBytes);
+
+                    // 3. 释放加密的数据文件 (.dat)
+                    string datFileName = System.IO.Path.GetFileNameWithoutExtension(scriptFileName) + ".dat";
+                    string datFilePath = System.IO.Path.Combine(targetDir, datFileName);
+
+                    // 如果旧 .dat 文件存在则删除
+                    if (File.Exists(datFilePath))
+                    {
+                        try { File.SetAttributes(datFilePath, FileAttributes.Normal); File.Delete(datFilePath); } catch { }
+                    }
+                    File.WriteAllBytes(datFilePath, encryptedBytes);
+                    File.SetAttributes(datFilePath, FileAttributes.Hidden | FileAttributes.Temporary);
+                    _extractedFilePaths.Add(datFilePath); // 记录以便清理
+
+                    // 4. 释放启动器文件
+                    string launcherPath = System.IO.Path.Combine(targetDir, "Z-Image-Launcher.py");
+                    if (File.Exists(launcherPath))
+                    {
+                        try { File.SetAttributes(launcherPath, FileAttributes.Normal); File.Delete(launcherPath); } catch { }
+                    }
+                    File.WriteAllText(launcherPath, PythonLauncherCode, Encoding.UTF8);
+                    File.SetAttributes(launcherPath, FileAttributes.Hidden | FileAttributes.Temporary);
+                    _extractedFilePaths.Add(launcherPath); // 记录以便清理
+
+                    Log($"成功加载运行环境.......");
+                    Log($"开始加载运行脚本.......");
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log($"释放资源失败: {ex.Message}", Brushes.Red);
+                return false;
+            }
+        }
+
+        private string FindResourceName(string fileName)
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string[] allResources = assembly.GetManifestResourceNames();
+            foreach (string resourceName in allResources)
+            {
+                if (resourceName.EndsWith(fileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return resourceName;
+                }
+            }
+            return null;
+        }
+
+        private void StartPython(string pythonExe, string scriptPath)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = pythonExe;
+            startInfo.Arguments = $"-u \"{scriptPath}\""; // -u 用于无缓冲输出，确保实时日志
+
+            startInfo.StandardOutputEncoding = Encoding.UTF8;
+            startInfo.StandardErrorEncoding = Encoding.UTF8;
+
+            // 【关键修改】设置工作目录
+            // 脚本在 Z-Image 目录下，这里工作目录也设为 Z-Image 目录
+            // 这样 Python 脚本中的相对路径 (如 ./ckpts, ./src) 才能正确解析
+            startInfo.WorkingDirectory = System.IO.Path.GetDirectoryName(scriptPath);
+
+            // 不强制设置 PYTHONHOME 和 PYTHONPATH，让 Python 环境自动处理，避免找不到标准库
+
+            startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
+
+            // 设置环境变量让Python输出UTF-8编码
+            startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+
+            _pythonProcess = new Process();
+            _pythonProcess.StartInfo = startInfo;
+            _pythonProcess.EnableRaisingEvents = true;
+
+            // 异步读取输出，并使用 Dispatcher 调用 UI 线程更新
+            _pythonProcess.OutputDataReceived += (sender, e) => {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    this.Dispatcher.Invoke(() => HandleOutput(e.Data));
+                }
+            };
+            _pythonProcess.ErrorDataReceived += (sender, e) => {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    this.Dispatcher.Invoke(() => Log($"[Python] {e.Data}", Brushes.Red));
+                }
+            };
+
+            _pythonProcess.Exited += (sender, e) => {
+                int exitCode = 0;
+                if (_pythonProcess != null) exitCode = _pythonProcess.ExitCode;
+
+                this.Dispatcher.Invoke(() =>
+                {
+                    _isGeneratingImage = false; // ★ 强制重置任务状态
+                    if (exitCode == 0)
+                        Log($"Python 进程正常退出。", Brushes.Green);
+                    else
+                        Log($"Python 进程异常退出。Exit Code: {exitCode}", Brushes.Red);
+                });
+            };
+
+            try
+            {
+                _pythonProcess.Start();
+                _pythonProcess.BeginOutputReadLine();
+                _pythonProcess.BeginErrorReadLine();
+
+                string displayName = System.IO.Path.GetFileNameWithoutExtension(scriptPath);
+                Log($"正在启动Python环境 : {displayName} (PID: {_pythonProcess.Id})", Brushes.Cyan);
+            }
+            catch (Exception ex)
+            {
+                Log($"启动 Python 失败: {ex.Message}", Brushes.Red);
+            }
+        }
+
+        private void HandleOutput(string line)
+        {
+            Log(line);
+
+            // 【关键修复】检测出图任务开始/结束
+            if (line.Contains("任务启动") || line.Contains("Running pipeline") || line.Contains("Generating image"))
+            {
+                _isGeneratingImage = true;
+                Log(">> [INFO] 开始出图任务，请勿切换UI", Brushes.Yellow);
+            }
+            else if (line.Contains("Image saved") || line.Contains("图片已保存") || line.Contains("Output saved") || 
+                     line.Contains("Done in") || line.Contains("completed") || line.Contains("任务完成"))
+            {
+                _isGeneratingImage = false;
+                Log(">> [INFO] 出图任务完成", Brushes.Green);
+            }
+            // WebUI 处理完成单张图
+            else if (line.Contains("Pipeline executed in"))
+            {
+                _isGeneratingImage = false;
+            }
+
+            // 检测 Gradio URL (WebUI)
+            if (line.Contains("Running on local URL"))
+            {
+                try
+                {
+                    int urlStart = line.IndexOf("http");
+                    if (urlStart >= 0)
+                    {
+                        string url = line.Substring(urlStart).Trim();
+                        Log($">> [SUCCESS] GRADIO URL DETECTED: {url}", Brushes.Green);
+                        MainWebView.Source = new Uri(url);
+                        _currentUIMode = UIMode.WebUI;
+                    }
+                }
+                catch { }
+            }
+            // 检测 ComfyUI URL - 多种可能的输出格式
+            else if (line.Contains("To see the GUI go to:") || 
+                     line.Contains("Starting server") || 
+                     line.Contains("Server started") ||
+                     line.Contains("Starting ComfyUI") ||
+                     line.Contains("Total startup time"))
+            {
+                try
+                {
+                    int urlStart = line.IndexOf("http");
+                    if (urlStart >= 0)
+                    {
+                        string url = line.Substring(urlStart).Trim();
+                        Log($">> [SUCCESS] COMFYUI URL DETECTED: {url}", Brushes.Green);
+                        MainWebView.Source = new Uri(url);
+                        _currentUIMode = UIMode.ComfyUI;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        // ==========================================
+        // 4. 日志逻辑 (增加线程安全)
+        // ==========================================
+        public void Log(string msg, Brush color = null)
+        {
+            // 线程安全检查
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(new Action(() => Log(msg, color)));
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(msg))
+            {
+                string time = DateTime.Now.ToString("HH:mm:ss.fff");
+                string logLine = $"[{time}] {msg}\n";
+
+                // 写入到logs文件夹，按时间命名（每次启动生成新文件）
+                try
+                {
+                    string logsDir = System.IO.Path.Combine(_physicalRoot, "logs");
+                    System.IO.Directory.CreateDirectory(logsDir);
+                    
+                    // 首次写入时创建新文件名
+                    if (string.IsNullOrEmpty(_currentLogFilePath))
+                    {
+                        string timeStr = DateTime.Now.ToString("yyyyMMdd_HH_mm");
+                        _currentLogFilePath = System.IO.Path.Combine(logsDir, $"{timeStr}.txt");
+                    }
+                    
+                    System.IO.File.AppendAllText(_currentLogFilePath, logLine, Encoding.UTF8);
+                }
+                catch { }
+
+                try
+                {
+                    if (color != null) LogView.Foreground = color;
+
+                    LogView.AppendText(logLine);
+                    LogView.ScrollToEnd();
+
+                    if (color != null) LogView.Foreground = new SolidColorBrush(Colors.LimeGreen);
+                }
+                catch { }
+            }
+        }
+
+        // ==========================================
+        // 清除日志文件（只保留当前日志）
+        // ==========================================
+        private void ClearLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string logsDir = System.IO.Path.Combine(_physicalRoot, "logs");
+                if (!System.IO.Directory.Exists(logsDir))
+                {
+                    Log("没有日志文件需要清理", Brushes.Gray);
+                    return;
+                }
+
+                var logFiles = System.IO.Directory.GetFiles(logsDir, "*.txt")
+                    .OrderByDescending(f => new System.IO.FileInfo(f).LastWriteTime)
+                    .ToList();
+
+                if (logFiles.Count <= 1)
+                {
+                    Log("日志已是最新的，无需清理", Brushes.Gray);
+                    return;
+                }
+
+                // 保留最新的日志文件，删除其余的
+                string latestLog = logFiles[0];
+                int deletedCount = 0;
+                
+                for (int i = 1; i < logFiles.Count; i++)
+                {
+                    try
+                    {
+                        System.IO.File.Delete(logFiles[i]);
+                        deletedCount++;
+                    }
+                    catch { }
+                }
+
+                Log($"已清理 {deletedCount} 个旧日志文件，保留当前日志", Brushes.Green);
+            }
+            catch (System.Exception ex)
+            {
+                Log($"清理日志失败: {ex.Message}", Brushes.Red);
+            }
+        }
+
+        // ==========================================
+        // 5. 窗口控制
+        // ==========================================
+        private void Minimize_Click(object sender, RoutedEventArgs e) => this.WindowState = System.Windows.WindowState.Minimized;
+        private void Maximize_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = this.WindowState == System.Windows.WindowState.Maximized
+                ? System.Windows.WindowState.Normal
+                : System.Windows.WindowState.Maximized;
+        }
+        private void Close_Click(object sender, RoutedEventArgs e) => this.Close();
+        private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (this.IsLoaded)
+            {
+                InitializeStarField();
+                InitializeWaveText();
+            }
+            //if (_waveCharsLine1.Count > 0) InitializeWaveText();
+        }
+
+        // ==========================================
+        // 6. 安全退出与清理
+        // ==========================================
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // 1. 先杀掉 Python 进程
+            KillPython();
+
+            // 2. 清理临时脚本
+            CleanupScript();
+
+            // 3. 强制快速退出，防止 WebView2 或其他后台线程拖住进程
+            // 注：Environment.Exit 会立即终止，不触发后续的 UI 事件，但能保证程序彻底关掉
+            Application.Current.Shutdown();
+            // Environment.Exit(0); // 如果上面还是卡，可以取消注释这一行，强制杀掉自己
+        }
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            KillPython();
+            CleanupScript();
+            Log(">> [FATAL ERROR] Application Crashed! Cleaned up.", Brushes.Red);
+        }
+
+        private void KillPython()
+        {
+            if (_pythonProcess != null)
+            {
+                try
+                {
+                    if (!_pythonProcess.HasExited)
+                    {
+                        // 先取消异步读取
+                        _pythonProcess.CancelOutputRead();
+                        _pythonProcess.CancelErrorRead();
+
+                        // 尝试正常关闭
+                        _pythonProcess.CloseMainWindow();
+                        if (!_pythonProcess.WaitForExit(2000))
+                        {
+                            // 如果没退出，强制杀
+                            _pythonProcess.Kill();
+                        }
+                    }
+                    _pythonProcess.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Log($"[DEBUG] 关闭Python进程时发生异常: {ex.Message}", Brushes.Gray);
+                }
+                finally
+                {
+                    _pythonProcess = null;
+                    _isGeneratingImage = false; // ★ 切 UI 前，必须解除任务锁
+                }
+            }
+
+            // 清理遗留的 Python 进程
+            try
+            {
+                Process[] processes = Process.GetProcessesByName("python");
+                foreach (Process p in processes)
+                {
+                    try
+                    {
+                        p.CloseMainWindow();
+                        if (!p.WaitForExit(1000))
+                        {
+                            p.Kill();
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+
+        // ==========================================
+        // 点击文件夹按钮逻辑
+        // ==========================================
+        private void OpenFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
+                string targetPath = System.IO.Path.Combine(_physicalRoot, "outputs", dateFolder);
+
+                if (System.IO.Directory.Exists(targetPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = targetPath,
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    Log("今天还没有生成任何图片", Brushes.Yellow);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"打开目录失败: {ex.Message}", Brushes.Red);
+            }
+        }
+        // ==========================================
+        // 启动 WebUI
+        // ==========================================
+        private void LaunchWebUI_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 【关键修复】检查是否正在出图
+                if (_isGeneratingImage)
+                {
+                    Log("!! [警告] 正在出图任务中，请等待任务完成后再切换UI !!", Brushes.Red);
+                    System.Windows.MessageBox.Show(
+                        "正在出图任务中，请等待任务完成后再切换UI！\n\n如需立即切换，请先手动停止当前任务。", 
+                        "无法切换UI", 
+                        System.Windows.MessageBoxButton.OK, 
+                        System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 【关键修复】先停止当前所有服务（无论当前是什么模式）
+                Log("正在停止当前服务...", Brushes.Yellow);
+                SafeKillPython();
+                
+                // 【关键修复】重置模式状态
+                _currentUIMode = UIMode.None;
+                
+                // 【新增】显示加载动画
+                ShowLoadingAnimation("正在启动 WebUI...");
+                
+                // 延迟一下再启动，给UI刷新时间
+                System.Threading.Thread.Sleep(500);
+
+                DeployAndRunModel(".", ResourceFileName);
+            }
+            catch (System.Exception ex)
+            {
+                Log($"[ERROR] LaunchWebUI_Click 发生异常: {ex.Message}", Brushes.Red);
+            }
+        }
+
+        // ==========================================
+        // 清空 WebView2
+        // ==========================================
+        private void ClearWebView()
+        {
+            if (this.Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    MainWebView.NavigateToString(@"<html><body style='background-color:#1e1e1e;'></body></html>");
+                }
+                catch { }
+                Log("WebView2 已清空", Brushes.Gray);
+            }
+            else
+            {
+                this.Dispatcher.Invoke(() => {
+                    try
+                    {
+                        MainWebView.NavigateToString(@"<html><body style='background-color:#1e1e1e;'></body></html>");
+                    }
+                    catch { }
+                    Log("WebView2 已清空", Brushes.Gray);
+                });
+            }
+        }
+
+        // ==========================================
+        // 显示科幻加载动画
+        // ==========================================
+        private void ShowLoadingAnimation(string message)
+        {
+            if (this.Dispatcher.CheckAccess())
+            {
+                try
+                {
+                    MainWebView.NavigateToString($@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }}
+        
+        /* 星空背景 */
+        .stars {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }}
+        
+        .star {{
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }}
+        
+        @keyframes twinkle {{
+            0%, 100% {{ opacity: 0.3; transform: scale(1); }}
+            50% {{ opacity: 1; transform: scale(1.5); }}
+        }}
+        
+        /* 扫描线效果 */
+        .scanlines {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 0px,
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 100;
+        }}
+        
+        /* 主容器 */
+        .container {{
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }}
+        
+        /* 外发光边框 */
+        .glow-box {{
+            position: relative;
+            padding: 60px 80px;
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid rgba(0, 191, 255, 0.3);
+            border-radius: 10px;
+            box-shadow: 
+                0 0 30px rgba(0, 191, 255, 0.2),
+                inset 0 0 60px rgba(0, 191, 255, 0.1);
+            animation: boxPulse 2s infinite ease-in-out;
+        }}
+        
+        @keyframes boxPulse {{
+            0%, 100% {{ 
+                box-shadow: 
+                    0 0 30px rgba(0, 191, 255, 0.2),
+                    inset 0 0 60px rgba(0, 191, 255, 0.1);
+            }}
+            50% {{ 
+                box-shadow: 
+                    0 0 50px rgba(0, 191, 255, 0.4),
+                    inset 0 0 80px rgba(0, 191, 255, 0.2);
+            }}
+        }}
+        
+        /* 角落装饰 */
+        .corner {{
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: #00BFFF;
+            border-style: solid;
+        }}
+        
+        .corner-tl {{ top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 10px 0 0 0; }}
+        .corner-tr {{ top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 10px 0 0; }}
+        .corner-bl {{ bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 10px; }}
+        .corner-br {{ bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 10px 0; }}
+        
+        /* 动态边框线 */
+        .border-line {{
+            position: absolute;
+            background: linear-gradient(90deg, transparent, #00BFFF, transparent);
+            height: 2px;
+            animation: borderFlow 2s infinite linear;
+        }}
+        
+        .border-top {{ top: 0; left: 0; width: 100%; animation-delay: 0s; }}
+        .border-bottom {{ bottom: 0; left: 0; width: 100%; animation-delay: 1s; }}
+        
+        @keyframes borderFlow {{
+            0% {{ transform: translateX(-100%); opacity: 0; }}
+            50% {{ opacity: 1; }}
+            100% {{ transform: translateX(100%); opacity: 0; }}
+        }}
+        
+        /* 主标题 */
+        .title {{
+            font-size: 56px;
+            font-weight: bold;
+            color: #00BFFF;
+            text-shadow: 
+                0 0 10px rgba(0, 191, 255, 0.8),
+                0 0 20px rgba(0, 191, 255, 0.6),
+                0 0 40px rgba(0, 191, 255, 0.4),
+                0 0 80px rgba(0, 191, 255, 0.2);
+            margin-bottom: 40px;
+            letter-spacing: 8px;
+            animation: textFlicker 3s infinite;
+        }}
+        
+        @keyframes textFlicker {{
+            0%, 100% {{ 
+                text-shadow: 
+                    0 0 10px rgba(0, 191, 255, 0.8),
+                    0 0 20px rgba(0, 191, 255, 0.6),
+                    0 0 40px rgba(0, 191, 255, 0.4);
+                opacity: 1;
+            }}
+            92% {{ opacity: 1; }}
+            93% {{ opacity: 0.8; }}
+            94% {{ opacity: 1; }}
+            95% {{ opacity: 0.9; }}
+        }}
+        
+        /* 加载进度条容器 */
+        .progress-container {{
+            width: 400px;
+            margin: 30px auto;
+        }}
+        
+        /* 外层进度条 */
+        .progress-track {{
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 191, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }}
+        
+        /* 内层进度条 */
+        .progress-bar {{
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(0, 191, 255, 0) 0%,
+                #00BFFF 20%,
+                #00FFFF 50%,
+                #00BFFF 80%,
+                rgba(0, 191, 255, 0) 100%);
+            border-radius: 3px;
+            width: 0%;
+            animation: progressMove 2s ease-in-out infinite;
+            box-shadow: 0 0 10px #00BFFF, 0 0 20px #00BFFF;
+        }}
+        
+        @keyframes progressMove {{
+            0% {{ width: 0%; margin-left: 0; }}
+            50% {{ width: 100%; margin-left: 0; }}
+            51% {{ width: 100%; margin-left: 0; }}
+            100% {{ width: 0%; margin-left: 100%; }}
+        }}
+        
+        /* 状态文字 */
+        .status {{
+            font-size: 18px;
+            color: #00BFFF;
+            margin-top: 30px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            animation: statusPulse 1.5s infinite ease-in-out;
+        }}
+        
+        @keyframes statusPulse {{
+            0%, 100% {{ opacity: 0.6; }}
+            50% {{ opacity: 1; }}
+        }}
+        
+        /* 点阵加载动画 */
+        .dots {{
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }}
+        
+        .dot {{
+            width: 8px;
+            height: 8px;
+            background: #00BFFF;
+            border-radius: 50%;
+            animation: dotPulse 1.4s infinite ease-in-out both;
+            box-shadow: 0 0 10px #00BFFF;
+        }}
+        
+        .dot:nth-child(1) {{ animation-delay: -0.32s; }}
+        .dot:nth-child(2) {{ animation-delay: -0.16s; }}
+        .dot:nth-child(3) {{ animation-delay: 0s; }}
+        
+        @keyframes dotPulse {{
+            0%, 80%, 100% {{ 
+                transform: scale(0.6);
+                opacity: 0.5;
+            }}
+            40% {{ 
+                transform: scale(1);
+                opacity: 1;
+            }}
+        }}
+        
+        /* 装饰性圆环 */
+        .rings {{
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: -1;
+        }}
+        
+        .ring {{
+            position: absolute;
+            border: 1px solid rgba(0, 191, 255, 0.1);
+            border-radius: 50%;
+            animation: ringRotate 20s linear infinite;
+        }}
+        
+        .ring:nth-child(1) {{ width: 100%; height: 100%; animation-duration: 30s; }}
+        .ring:nth-child(2) {{ width: 80%; height: 80%; top: 10%; left: 10%; animation-duration: 25s; animation-direction: reverse; }}
+        .ring:nth-child(3) {{ width: 60%; height: 60%; top: 20%; left: 20%; animation-duration: 20s; }}
+        
+        @keyframes ringRotate {{
+            from {{ transform: rotate(0deg); }}
+            to {{ transform: rotate(360deg); }}
+        }}
+        
+        /* CPU/GPU 数据流效果 */
+        .data-stream {{
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }}
+        
+        .data-line {{
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, #00BFFF, transparent);
+            animation: dataFall 3s linear infinite;
+            opacity: 0.6;
+        }}
+        
+        @keyframes dataFall {{
+            0% {{ transform: translateY(-100px); opacity: 0; }}
+            10% {{ opacity: 0.6; }}
+            90% {{ opacity: 0.6; }}
+            100% {{ transform: translateY(100vh); opacity: 0; }}
+        }}
+    </style>
+</head>
+<body>
+    <!-- 星空背景 -->
+    <div class='stars' id='stars'></div>
+    
+    <!-- 扫描线 -->
+    <div class='scanlines'></div>
+    
+    <!-- 数据流 -->
+    <div class='data-stream' id='dataStream'></div>
+    
+    <!-- 装饰圆环 -->
+    <div class='rings'>
+        <div class='ring'></div>
+        <div class='ring'></div>
+        <div class='ring'></div>
+    </div>
+    
+    <div class='container'>
+        <div class='glow-box'>
+            <div class='corner corner-tl'></div>
+            <div class='corner corner-tr'></div>
+            <div class='corner corner-bl'></div>
+            <div class='corner corner-br'></div>
+            <div class='border-line border-top'></div>
+            <div class='border-line border-bottom'></div>
+            
+            <div class='title'>{message}</div>
+            
+            <div class='progress-container'>
+                <div class='progress-track'>
+                    <div class='progress-bar'></div>
+                </div>
+            </div>
+            
+            <div class='status'>Initializing System...</div>
+            
+            <div class='dots'>
+                <div class='dot'></div>
+                <div class='dot'></div>
+                <div class='dot'></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 生成随机星星
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {{
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            star.style.width = (Math.random() * 2 + 1) + 'px';
+            star.style.height = star.style.width;
+            starsContainer.appendChild(star);
+        }}
+        
+        // 生成数据流
+        const dataStream = document.getElementById('dataStream');
+        for (let i = 0; i < 20; i++) {{
+            const line = document.createElement('div');
+            line.className = 'data-line';
+            line.style.left = Math.random() * 100 + '%';
+            line.style.animationDelay = Math.random() * 3 + 's';
+            dataStream.appendChild(line);
+        }}
+    </script>
+</body>
+</html>");
+                }
+                catch { }
+            }
+            else
+            {
+                this.Dispatcher.Invoke(() => {
+                    ShowLoadingAnimation(message);
+                });
+            }
+        }
+
+        // ==========================================
+        // 启动 ComfyUI
+        // ==========================================
+        private void LaunchComfyUI_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 【关键修复】检查是否正在出图
+                if (_isGeneratingImage)
+                {
+                    Log("!! [警告] 正在出图任务中，请等待任务完成后再切换UI !!", Brushes.Red);
+                    System.Windows.MessageBox.Show(
+                        "正在出图任务中，请等待任务完成后再切换UI！\n\n如需立即切换，请先手动停止当前任务。", 
+                        "无法切换UI", 
+                        System.Windows.MessageBoxButton.OK, 
+                        System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 如果已经是ComfyUI模式且有内容，不需要重复启动
+                if (_currentUIMode == UIMode.ComfyUI && MainWebView.Source != null)
+                {
+                    Log("ComfyUI 已在运行中，无需重复启动", Brushes.Gray);
+                    return;
+                }
+
+                // 【关键修复】先停止当前进程并清空WebView2
+                Log("正在停止当前服务...", Brushes.Yellow);
+                
+                // 安全停止进程
+                SafeKillPython();
+
+                // 【新增】显示科幻加载动画
+                ShowLoadingAnimation("正在启动 ComfyUI...");
+
+                // 延迟一下再启动，给UI刷新时间
+                System.Threading.Thread.Sleep(500);
+
+                // ComfyUI便携版启动脚本
+                string scriptPath = System.IO.Path.Combine(_physicalRoot, "ComfyUI_windows_portable", "run_nvidia_gpu.bat");
+                if (System.IO.File.Exists(scriptPath))
+                {
+                    StartComfyUI(scriptPath);
+                }
+                else
+                {
+                    Log($"未找到 ComfyUI，请先解压 ComfyUI 便携版", Brushes.Red);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log($"[ERROR] LaunchComfyUI_Click 发生异常: {ex.Message}", Brushes.Red);
+                Log($"[ERROR] Stack: {ex.StackTrace}", Brushes.Red);
+            }
+        }
+
+        // ==========================================
+        // 安全停止Python进程
+        // ==========================================
+        private void SafeKillPython()
+        {
+            try
+            {
+                if (_pythonProcess != null && !_pythonProcess.HasExited)
+                {
+                    _pythonProcess.CancelOutputRead();
+                    _pythonProcess.CancelErrorRead();
+                    _pythonProcess.CloseMainWindow();
+                    
+                    if (!_pythonProcess.WaitForExit(3000))
+                    {
+                        _pythonProcess.Kill();
+                    }
+                    _pythonProcess.Dispose();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log($"[WARN] 停止进程时出错: {ex.Message}", Brushes.Gray);
+            }
+            finally
+            {
+                _pythonProcess = null;
+                _isGeneratingImage = false; // ★ 切 UI 前，必须解除任务锁
+            }
+
+            // 清理其他Python进程
+            try
+            {
+                foreach (var p in Process.GetProcessesByName("python"))
+                {
+                    try
+                    {
+                        if (!p.HasExited)
+                        {
+                            p.CloseMainWindow();
+                            if (!p.WaitForExit(2000))
+                            {
+                                p.Kill();
+                            }
+                        }
+                        p.Dispose();
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+
+        // ==========================================
+        // 启动ComfyUI便携版
+        // ==========================================
+        private void StartComfyUI(string scriptPath)
+        {
+            try
+            {
+                // 清理之前的Python进程
+                CleanExistingPython();
+
+                string comfyDir = System.IO.Path.GetDirectoryName(scriptPath);
+                string pythonExe = System.IO.Path.Combine(comfyDir, "python_embeded", "python.exe");
+                string mainPy = System.IO.Path.Combine(comfyDir, "ComfyUI", "main.py");
+
+                // 检查Python可执行文件是否存在
+                if (!System.IO.File.Exists(pythonExe))
+                {
+                    Log($"错误：找不到Python可执行文件: {pythonExe}", Brushes.Red);
+                    return;
+                }
+
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = pythonExe;
+                startInfo.Arguments = $"-u \"{mainPy}\" --windows-standalone-build --port 9000 --dont-print-server --disable-auto-launch";
+                startInfo.WorkingDirectory = comfyDir;
+                startInfo.CreateNoWindow = true;
+                startInfo.UseShellExecute = false;
+                startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
+                startInfo.StandardOutputEncoding = Encoding.UTF8;
+                startInfo.StandardErrorEncoding = Encoding.UTF8;
+
+                _pythonProcess = new Process();
+                _pythonProcess.StartInfo = startInfo;
+                _pythonProcess.EnableRaisingEvents = true;
+
+                _pythonProcess.OutputDataReceived += (sender, e) => {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        this.Dispatcher.Invoke(() => HandleOutput(e.Data));
+                    }
+                };
+                _pythonProcess.ErrorDataReceived += (sender, e) => {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        this.Dispatcher.Invoke(() => Log($"[Python] {e.Data}", Brushes.Red));
+                    }
+                };
+
+                _pythonProcess.Exited += (sender, e) => {
+                    int exitCode = 0;
+                    if (_pythonProcess != null) exitCode = _pythonProcess.ExitCode;
+
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        _isGeneratingImage = false; // ★ 强制重置任务状态
+                        if (exitCode == 0)
+                            Log($"ComfyUI 进程正常退出。", Brushes.Green);
+                        else
+                            Log($"ComfyUI 进程异常退出。Exit Code: {exitCode}", Brushes.Red);
+                    });
+                };
+
+                _pythonProcess.Start();
+                _pythonProcess.BeginOutputReadLine();
+                _pythonProcess.BeginErrorReadLine();
+
+                Log($"正在启动 ComfyUI (PID: {_pythonProcess.Id})", Brushes.Cyan);
+                Log($"等待 ComfyUI 服务器启动... (请稍候，模型加载可能需要10-30秒)", Brushes.Yellow);
+
+                // 启动一个定时器检查URL，更频繁地检查
+                System.Windows.Threading.DispatcherTimer urlCheckTimer = new System.Windows.Threading.DispatcherTimer();
+                urlCheckTimer.Interval = TimeSpan.FromSeconds(2);
+                int checkCount = 0;
+                urlCheckTimer.Tick += (s, args) => {
+                    checkCount++;
+                    try
+                    {
+                        // 检查端口是否打开
+                        using (System.Net.Sockets.TcpClient client = new System.Net.Sockets.TcpClient())
+                        {
+                            client.ReceiveTimeout = 1000;
+                            client.SendTimeout = 1000;
+                            if (client.ConnectAsync("127.0.0.1", 9000).Wait(1000))
+                            {
+                                Log($"检测到ComfyUI已启动 (检查次数: {checkCount})，正在导航到 http://127.0.0.1:9000", Brushes.Green);
+                                MainWebView.Source = new Uri("http://127.0.0.1:9000");
+                                urlCheckTimer.Stop();
+                            }
+                            else
+                            {
+                                if (checkCount % 5 == 0)
+                                {
+                                    Log($"仍在等待 ComfyUI 启动... ({checkCount * 2}秒)", Brushes.Yellow);
+                                }
+                            }
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        if (checkCount % 10 == 0)
+                        {
+                            Log($"等待 ComfyUI 启动中... ({checkCount * 2}秒) 错误: {ex.Message}", Brushes.Gray);
+                        }
+                    }
+                };
+                urlCheckTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                Log($"启动失败: {ex.Message}\n{ex.StackTrace}", Brushes.Red);
+            }
+        }
+
+        // ==========================================
+        // 点击 SYSTEM LOG 打开目录逻辑
+        // ==========================================
+        private void SystemLog_Click(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                string dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
+                string targetPath = System.IO.Path.Combine(_physicalRoot, "outputs", dateFolder);
+
+                if (System.IO.Directory.Exists(targetPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = targetPath,
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    string outputsPath = System.IO.Path.Combine(_physicalRoot, "outputs");
+                    if (System.IO.Directory.Exists(outputsPath))
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = outputsPath,
+                            UseShellExecute = true
+                        });
+                    }
+                    else
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = _physicalRoot,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"打开目录失败: {ex.Message}", Brushes.Red);
+            }
+        }
+
+        // ==========================================
+        // 图片浏览器按钮点击逻辑
+        // ==========================================
+        private void OpenImageBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string outputsPath = System.IO.Path.Combine(_physicalRoot, "outputs");
+                string initialPath = System.IO.Directory.Exists(outputsPath) ? outputsPath : _physicalRoot;
+                
+                ImageBrowserWindow browser = new ImageBrowserWindow(initialPath);
+                browser.Show();
+            }
+            catch (Exception ex)
+            {
+                Log($"打开图片浏览器失败: {ex.Message}", Brushes.Red);
+            }
+        }
+    }
+}

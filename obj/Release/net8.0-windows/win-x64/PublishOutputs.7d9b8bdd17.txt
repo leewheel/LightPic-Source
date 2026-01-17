@@ -1,0 +1,7 @@
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Z-Image-Launcher.pdb
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\runtimes\win-x64\native\WebView2Loader.dll
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\WebView2Loader.dll
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.Core.xml
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.WinForms.xml
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Microsoft.Web.WebView2.Wpf.xml
+C:\WoWserver\AI\Zimage_Dev\Z-Image-LauncherWpfAIFix\Z-Image-Launcher\bin\Release\net8.0-windows\publish\win-x64\Z-Image-Launcher.exe

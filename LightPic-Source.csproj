@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>LightPic_Source</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>LightPic.ico</ApplicationIcon>
+    
+    <!-- 混淆设置 -->
+    <DelaySign>false</DelaySign>
+    <AssemblyOriginatorKeyFile />
+    
+    <!-- 启用代码混淆优化 -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 这是一个好习惯：把 py 从项目中排除，防止重复引用 -->
+    <None Remove="app_script.txt" />
+    <None Remove="LightPic-App.py" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="LightPic.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 保持这个不变，你需要把脚本作为资源 -->
+    <EmbeddedResource Include="app_script.txt" />
+    <EmbeddedResource Include="LightPic-App.py">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 只有这一个包就够了！不要上面那个 Blazor 的包 -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="Microsoft-WindowsAPICodePack-Shell" Version="1.1.5" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- .NET 8 内置混淆支持 -->
+  <ItemGroup>
+    <PackageReference Include="Obfuscar" Version="2.2.6" Condition="false" />
+  </ItemGroup>
+
+</Project>

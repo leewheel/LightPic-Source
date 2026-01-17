@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "dgSpecHash": "EY5ptAI1c4Q=",
+  "success": true,
+  "projectFilePath": "E:\\Z-Image-Launcher\\Z-Image-Launcher.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\leewheel\\.nuget\\packages\\microsoft-windowsapicodepack-core\\1.1.5\\microsoft-windowsapicodepack-core.1.1.5.nupkg.sha512",
+    "C:\\Users\\leewheel\\.nuget\\packages\\microsoft-windowsapicodepack-shell\\1.1.5\\microsoft-windowsapicodepack-shell.1.1.5.nupkg.sha512",
+    "C:\\Users\\leewheel\\.nuget\\packages\\microsoft.web.webview2\\1.0.3650.58\\microsoft.web.webview2.1.0.3650.58.nupkg.sha512",
+    "C:\\Users\\leewheel\\.nuget\\packages\\system.drawing.common\\8.0.0\\system.drawing.common.8.0.0.nupkg.sha512",
+    "C:\\Users\\leewheel\\.nuget\\packages\\system.management\\8.0.0\\system.management.8.0.0.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1510",
+      "level": "Warning",
+      "message": "将不会删除 PackageReference System.Drawing.Common。请考虑从依赖项中删除此包，因为它可能不需要。",
+      "projectPath": "E:\\Z-Image-Launcher\\Z-Image-Launcher.csproj",
+      "warningLevel": 1,
+      "filePath": "E:\\Z-Image-Launcher\\Z-Image-Launcher.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1510",
+      "level": "Warning",
+      "message": "将不会删除 PackageReference System.Drawing.Common。请考虑从依赖项中删除此包，因为它可能不需要。",
+      "projectPath": "E:\\Z-Image-Launcher\\Z-Image-Launcher.csproj",
+      "warningLevel": 1,
+      "filePath": "E:\\Z-Image-Launcher\\Z-Image-Launcher.csproj",
+      "targetGraphs": []
+    }
+  ]
+}

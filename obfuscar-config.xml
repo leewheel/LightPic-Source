@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ObfuscarConfiguration xmlns="http://schemas.obfuscar.com/schema/2.0/ObfuscarConfiguration.xsd">
+  <!-- 项目输出路径 -->
+  <InPath>bin\Release\net8.0-windows\Z-Image-Launcher.exe</InPath>
+  <OutPath>bin\Release\net8.0-windows\Protected\Z-Image-Launcher.exe</OutPath>
+
+  <!-- 日志文件 -->
+  <OutMap>bin\Release\net8.0-windows\Protected\Mapping.txt</OutMap>
+
+  <!-- 密钥文件（可选，用于强名称签名） -->
+  <!-- <KeyFile>path\to\key.snk</KeyFile> -->
+
+  <!-- ==================== 混淆选项 ==================== -->
+
+  <!-- 1. 名称混淆 -->
+  <Option name="Rename" value="true" />
+  <Option name="RenamePublicFields" value="true" />
+  <Option name="RenameProperties" value="true" />
+  <Option name="RenameEvents" value="true" />
+  <Option name="KeepPublicApi" value="false" />
+  <Option name="HidePrivateApi" value="true" />
+
+  <!-- 2. 字符串加密（重要：保护你的密钥） -->
+  <Option name="EncryptStrings" value="true" />
+  <Option name="StringEncryptionKey" value="MyRandomKey2024!" />
+
+  <!-- 3. 控制流混淆（使反编译代码难以理解） -->
+  <Option name="ControlFlow" value="true" />
+
+  <!-- 4. 资源混淆 -->
+  <Option name="HideResources" value="true" />
+
+  <!-- 5. 抑制ILDASM（反汇编） -->
+  <Option name="SuppressILDasm" value="true" />
+
+  <!-- 6. 移除调试信息 -->
+  <Option name="OptimizeMethods" value="true" />
+  <Option name="RemoveInvalidMembers" value="true" />
+
+  <!-- 7. 变量重命名为不可读字符 -->
+  <Option name="ReuseNames" value="false" />
+
+  <!-- ==================== 要排除的混淆项 ==================== -->
+  <!-- 注意：由于你的项目使用 WPF 和 WebView2，以下类型不能混淆 -->
+
+  <Module file="bin\Release\net8.0-windows\Z-Image-Launcher.dll">
+    <!-- WPF/XAML 相关类型不能混淆 -->
+    <SkipMethod type="System.Windows.DependencyObject" name="*" />
+    <SkipMethod type="System.Windows.UIElement" name="*" />
+    <SkipMethod type="System.Windows.FrameworkElement" name="*" />
+    <SkipMethod type="System.Windows.Controls.Control" name="*" />
+    <SkipMethod type="System.Windows.Controls.Button" name="*" />
+    <SkipMethod type="System.Windows.Controls.TextBox" name="*" />
+    <SkipMethod type="System.Windows.Window" name="*" />
+
+    <!-- WebView2 相关不能混淆 -->
+    <SkipMethod type="Microsoft.Web.WebView2.Wpf.WebView2" name="*" />
+
+    <!-- Windows API Pack 相关 -->
+    <SkipMethod type="Microsoft.WindowsAPICodePack.Shell.CommonFileDialogs.CommonFileDialog" name="*" />
+  </Module>
+
+  <!-- 保留重要的程序集引用 -->
+  <Assembly file="bin\Release\net8.0-windows\Microsoft.Web.WebView2.Wpf.dll" />
+  <Assembly file="bin\Release\net8.0-windows\PresentationFramework.dll" />
+  <Assembly file="bin\Release\net8.0-windows\WindowsBase.dll" />
+  <Assembly file="bin\Release\net8.0-windows\PresentationCore.dll" />
+  <Assembly file="bin\Release\net8.0-windows\System.Xaml.dll" />
+</ObfuscarConfiguration>
