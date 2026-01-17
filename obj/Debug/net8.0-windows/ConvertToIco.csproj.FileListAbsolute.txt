@@ -1,5 +1,0 @@
-E:\LightPic-Source\obj\Debug\net8.0-windows\ConvertToIco.GeneratedMSBuildEditorConfig.editorconfig
-E:\LightPic-Source\obj\Debug\net8.0-windows\ConvertToIco.AssemblyInfoInputs.cache
-E:\LightPic-Source\obj\Debug\net8.0-windows\ConvertToIco.AssemblyInfo.cs
-E:\LightPic-Source\obj\Debug\net8.0-windows\ConvertToIco.csproj.CoreCompileInputs.cache
-E:\LightPic-Source\obj\Debug\net8.0-windows\ConvertToIco.sourcelink.json

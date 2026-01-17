@@ -8,6 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>LightPic.ico</ApplicationIcon>
+    <!-- 禁止生成默认的AssemblyInfo.cs文件 -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- 禁止生成AssemblyAttributes.cs文件 -->
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     
     <!-- 混淆设置 -->
     <DelaySign>false</DelaySign>

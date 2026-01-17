@@ -8,8 +8,6 @@ E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source_Content.g.cs
 E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source_MarkupCompile.cache
 E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.g.resources
 E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.GeneratedMSBuildEditorConfig.editorconfig
-E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.AssemblyInfoInputs.cache
-E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.AssemblyInfo.cs
 E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.csproj.CoreCompileInputs.cache
 E:\LightPic-Source\obj\Debug\net8.0-windows\win-x64\LightPic-Source.sourcelink.json
 E:\LightPic-Source\bin\Debug\net8.0-windows\win-x64\runtimes\win-x64\native\WebView2Loader.dll

@@ -1,5 +1,0 @@
-E:\LightPic-Source\obj\Debug\net8.0-windows\SimpleConvert.GeneratedMSBuildEditorConfig.editorconfig
-E:\LightPic-Source\obj\Debug\net8.0-windows\SimpleConvert.AssemblyInfoInputs.cache
-E:\LightPic-Source\obj\Debug\net8.0-windows\SimpleConvert.AssemblyInfo.cs
-E:\LightPic-Source\obj\Debug\net8.0-windows\SimpleConvert.csproj.CoreCompileInputs.cache
-E:\LightPic-Source\obj\Debug\net8.0-windows\SimpleConvert.sourcelink.json
