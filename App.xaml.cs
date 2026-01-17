@@ -5,7 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 
-namespace Z_Image_Launcher
+namespace LightPic_Source
 {
     /// <summary>
     /// Interaction logic for App.xaml
