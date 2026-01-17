@@ -5,7 +5,7 @@
 **专为低端显卡打造的 AI 生图应用集合**
 
 <div align="center">
-  <img src="Z-Image.ico" alt="轻创图源 Logo" width="120" height="120">
+  <img src="LightPic.ico" alt="轻创图源 Logo" width="120" height="120">
 </div>
 
 <div align="center">
