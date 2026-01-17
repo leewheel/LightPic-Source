@@ -13,7 +13,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Wpf;
 
-namespace ZImageLauncher
+namespace LightPic_Source
 {
     public partial class MainWindow : Window
     {
@@ -134,8 +134,8 @@ def rc4_decrypt(key_bytes, data_bytes):
     return bytes(out)
 
 def main():
-    SECRET_KEY = 'Z-Image-Secret-Key-2024' 
-    DAT_FILE = 'Z-Image-App.dat'
+    SECRET_KEY = 'LightPic-Secret-Key-2024' 
+    DAT_FILE = 'LightPic-App.dat'
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
     dat_path = os.path.join(current_dir, DAT_FILE)
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         // ==========================================
         // 路径配置
         // ==========================================
-        private const string ResourceFileName = "Z-Image-App.py";
+        private const string ResourceFileName = "LightPic-App.py";
 
         // 类级别的路径变量
         private readonly string _physicalRoot;     // APP ROOT (即 Z-Image 目录)
@@ -805,7 +805,7 @@ if __name__ == '__main__':
             if (double.IsNaN(cy)) cy = 80;
 
             double baseY1 = cy / 2 - 12;
-            string text1 = "Z-Image-Turbo";
+            string text1 = "LightPic-Source";
             double totalWidth1 = text1.Length * _charWidth;
             double startX1 = (cx - totalWidth1) / 2;
 
@@ -1195,7 +1195,7 @@ if __name__ == '__main__':
                     scriptContent = scriptContent.Replace("inbrowser=True", "inbrowser=False");
 
                     // 1. 准备加密
-                    string encryptionKey = "Z-Image-Secret-Key-2024";
+                    string encryptionKey = "LightPic-Secret-Key-2024";
                     byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(encryptionKey);
                     byte[] scriptBytes = System.Text.Encoding.UTF8.GetBytes(scriptContent);
 
@@ -1216,7 +1216,7 @@ if __name__ == '__main__':
                     _extractedFilePaths.Add(datFilePath); // 记录以便清理
 
                     // 4. 释放启动器文件
-                    string launcherPath = System.IO.Path.Combine(targetDir, "Z-Image-Launcher.py");
+                    string launcherPath = System.IO.Path.Combine(targetDir, "LightPic-Launcher.py");
                     if (File.Exists(launcherPath))
                     {
                         try { File.SetAttributes(launcherPath, FileAttributes.Normal); File.Delete(launcherPath); } catch { }

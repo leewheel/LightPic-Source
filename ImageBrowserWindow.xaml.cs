@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
-namespace ZImageLauncher
+namespace LightPic_Source
 {
     public class ThumbnailItem
     {

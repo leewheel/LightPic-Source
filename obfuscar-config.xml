@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ObfuscarConfiguration xmlns="http://schemas.obfuscar.com/schema/2.0/ObfuscarConfiguration.xsd">
   <!-- 项目输出路径 -->
-  <InPath>bin\Release\net8.0-windows\Z-Image-Launcher.exe</InPath>
-  <OutPath>bin\Release\net8.0-windows\Protected\Z-Image-Launcher.exe</OutPath>
+  <InPath>bin\Release\net8.0-windows\LightPic-Source.exe</InPath>
+  <OutPath>bin\Release\net8.0-windows\Protected\LightPic-Source.exe</OutPath>
 
   <!-- 日志文件 -->
   <OutMap>bin\Release\net8.0-windows\Protected\Mapping.txt</OutMap>
@@ -43,7 +43,7 @@
   <!-- ==================== 要排除的混淆项 ==================== -->
   <!-- 注意：由于你的项目使用 WPF 和 WebView2，以下类型不能混淆 -->
 
-  <Module file="bin\Release\net8.0-windows\Z-Image-Launcher.dll">
+  <Module file="bin\Release\net8.0-windows\LightPic-Source.dll">
     <!-- WPF/XAML 相关类型不能混淆 -->
     <SkipMethod type="System.Windows.DependencyObject" name="*" />
     <SkipMethod type="System.Windows.UIElement" name="*" />
