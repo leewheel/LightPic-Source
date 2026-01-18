@@ -203,11 +203,11 @@ LightPic-Source/
 
 - 项目主页：[https://github.com/yourusername/lightpic-source](https://github.com/yourusername/lightpic-source)
 - 问题反馈：[GitHub Issues](https://github.com/yourusername/lightpic-source/issues)
-- 邮件联系：support@lightpic-source.com
+- 邮件联系：leewheel@gmail.com
 
 ---
 
 <div align="center">
   <p>💡 轻创图源，让 AI 生图触手可及 💡</p>
-  <p>© 2024 LightPic-Source Team</p>
+  <p>© 2025-2026 leewheel</p>
 </div>
